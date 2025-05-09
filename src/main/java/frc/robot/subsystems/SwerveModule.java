@@ -8,6 +8,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 
 import frc.robot.subsystems.AbsoluteEncoder.EncoderConfig;
+import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.SwerveConstants;
 
 public class SwerveModule {
@@ -50,19 +51,20 @@ public class SwerveModule {
      * @param state the desired speed and angle
      */
     public void setState(SwerveModuleState state) {
-        double driveMotorSpeed = state.speedMetersPerSecond / SwerveConstants.kMaxSpeedMetersPerSecond;
-        // Get and Optimize Error
+        double driveMotorSpeed = state.speedMetersPerSecond / DriveConstants.kMaxDriveSpeedMetersPerSecond;
+        
         double currentWheelAngleRadians = DriveUtils.normalizeAngleRadiansSigned(DriveUtils.angleMotorToWheel(angleMotor.getPositionRadians()));
         double desiredWheelAngleRadians = DriveUtils.normalizeAngleRadiansSigned(state.angle.getRadians());
         double wheelErrorRadians = desiredWheelAngleRadians - currentWheelAngleRadians;
+        
         // if greater than 90 deg, add 180 deg and flip drive motor direction
         if (Math.abs(wheelErrorRadians) > Math.PI / 2) {
             wheelErrorRadians = DriveUtils.normalizeAngleRadiansSigned(wheelErrorRadians + Math.PI);
             driveMotorSpeed = -driveMotorSpeed;
         }
-        double motorErrorRadians = DriveUtils.angleWheelToMotor(wheelErrorRadians);
-        double speed = DriveUtils.convertErrorRadiansToSpeed(motorErrorRadians);
-        setAngleMotorSpeed(speed);
+
+        setAngleMotorSpeed(DriveUtils.getAngleMotorSpeed(wheelErrorRadians, currentWheelAngleRadians));
+
         setDriveMotorSpeed(driveMotorSpeed);
     }
 
@@ -97,8 +99,7 @@ public class SwerveModule {
         double currentWheelAngleRadians = DriveUtils.normalizeAngleRadiansSigned(DriveUtils.angleMotorToWheel(angleMotor.getPositionRadians()));
         double desiredWheelAngleRadians = DriveUtils.normalizeAngleRadiansSigned(desiredAngle.getRadians());
         double wheelErrorRadians = DriveUtils.optimizeErrorRadians(DriveUtils.normalizeAngleRadiansSigned(desiredWheelAngleRadians - currentWheelAngleRadians));
-        double motorErrorRadians = DriveUtils.angleWheelToMotor(wheelErrorRadians);
-        double speed = DriveUtils.convertErrorRadiansToSpeed(motorErrorRadians);
+        double speed = DriveUtils.getAngleMotorSpeed(wheelErrorRadians, currentWheelAngleRadians);
         setAngleMotorSpeed(speed);
     }
 
@@ -112,25 +113,6 @@ public class SwerveModule {
         driveMotor.setEncoderPosition(0);
         angleMotor.setEncoderPosition(DriveUtils.angleWheelToMotor(wheelAngleAbsoluteEncoder.getPositionRotations()));
     }
-/*
- * 
- *  ENCODER POSITIONS ﻿
-﻿﻿﻿﻿﻿﻿ FL: R1 12.513083457946777, A1 0.412841796875, A2 8.846609933035714 ﻿
-﻿﻿﻿﻿﻿﻿ ENCODER POSITIONS ﻿
-﻿﻿﻿﻿﻿﻿ FL: R1 13.441595077514648, A1 -0.440185546875, A2 -9.432547433035714 ﻿
-﻿﻿﻿﻿﻿﻿ ENCODER POSITIONS ﻿
-﻿﻿﻿﻿﻿﻿ FL: R1 14.349254608154297, A1 -0.294677734375, A2 -6.314522879464286 ﻿
-﻿﻿﻿﻿﻿﻿ ENCODER POSITIONS ﻿
-﻿﻿﻿﻿﻿﻿ FL: R1 15.284842491149902, A1 -0.144775390625, A2 -3.102329799107143 ﻿
-﻿﻿﻿﻿﻿﻿ ENCODER POSITIONS ﻿
-﻿﻿﻿﻿﻿﻿ FL: R1 16.206466674804688, A1 0.001953125, A2 0.04185267857142857 ﻿
-﻿﻿﻿﻿﻿﻿ ENCODER POSITIONS ﻿
-﻿﻿﻿﻿﻿﻿ FL: R1 17.058269500732422, A1 0.135498046875, A2 2.903529575892857 ﻿
-﻿﻿﻿﻿﻿﻿ ENCODER POSITIONS ﻿
-﻿﻿﻿﻿﻿﻿ FL: R1 17.944984436035156, A1 0.277587890625, A2 5.948311941964286 ﻿
-﻿﻿﻿﻿﻿﻿ End drive command ﻿
- */
-
 
     public void printEncoderPositions(String name) {
         System.out.print(name + ": ");
@@ -151,28 +133,6 @@ public class SwerveModule {
             DriveUtils.driveMotorToWheel(driveMotor.getPositionRadians()) * SwerveConstants.kWheelRadiusMeters,
             Rotation2d.fromRadians(DriveUtils.angleMotorToWheel(angleMotor.getPositionRadians()))
         );
-    }
-
-    double sumRelative = 0;
-    double sumAbsolute = 0;
-
-    double count = 1;
-
-    double lastRelative = 0;
-    double lastAbsolute = 0;
-
-    public void printPositionSlope() {
-        double currentRelative = DriveUtils.angleMotorToWheel(angleMotor.getPositionRotations());
-        System.out.println(currentRelative - lastRelative + " " + sumRelative/count);
-        double currentAbsolute = wheelAngleAbsoluteEncoder.getPositionRotations();
-        System.out.println(currentAbsolute - lastAbsolute + " " + sumAbsolute/count);
-
-        sumRelative += currentRelative - lastRelative;
-        sumAbsolute += currentAbsolute - lastAbsolute;
-        count++;
-
-        lastRelative = currentRelative;
-        lastAbsolute = currentAbsolute;
     }
 }
 
